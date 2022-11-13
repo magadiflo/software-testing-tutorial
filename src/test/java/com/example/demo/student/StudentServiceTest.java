@@ -1,6 +1,7 @@
 package com.example.demo.student;
 
 import com.example.demo.student.exception.BadRequestException;
+import com.example.demo.student.exception.StudentNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,8 +87,34 @@ class StudentServiceTest {
     }
 
     @Test
-    @Disabled
-    void deleteStudent() {
+    void canDeleteStudent() {
+        // Give
+        Student student = new Student(1L, "Martín", "martin@gmail.com", Gender.MALE);
+        given(this.studentRepository.existsById(anyLong())).willReturn(true);
 
+        // When
+        this.underTest.deleteStudent(student.getId());
+
+        // Then
+        ArgumentCaptor<Long> longArgumentCaptor = ArgumentCaptor.forClass(Long.class);
+        Mockito.verify(this.studentRepository).deleteById(longArgumentCaptor.capture());
+        Long capturedId = longArgumentCaptor.getValue();
+
+        assertThat(capturedId).isEqualTo(student.getId());
+    }
+
+    @Test
+    void willThrowWhenStudentNotExists() {
+        // Given
+        Student student = new Student(1L, "Martín", "martin@gmail.com", Gender.MALE);
+        given(this.studentRepository.existsById(anyLong())).willReturn(false);
+
+        // When
+        // Then
+        assertThatThrownBy(() -> this.underTest.deleteStudent(student.getId()))
+                .isInstanceOf(StudentNotFoundException.class)
+                .hasMessageContaining("Student with id " + student.getId() + " does not exists");
+
+        Mockito.verify(this.studentRepository, Mockito.never()).deleteById(anyLong());
     }
 }
